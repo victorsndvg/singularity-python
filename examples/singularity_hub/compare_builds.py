@@ -17,6 +17,7 @@ from singularity.package import content_metadata
 import tempfile
 import os
 import pandas
+import pickle
 import shutil
 
 shub = Client()    # Singularity Hub Client
@@ -53,41 +54,48 @@ for container_name in container_names:
 
     images[container_name] = image_set
     results[container_name] = {'collection':collection,
-                               'containers':containers}
+                               'containers':containers,
+                               'images':image_set}
+
+
+def find_differences(df):
+    '''find_differences will look over file information from a set of containers,
+    and asses for equivalence of files.
+    '''
+    versions = dict()
+    unique_files = df.name.unique().tolist()
+    for unique_file in unique_files:
+       subset = df[df.name==unique_file]
+       number_versions = len(subset.chksum.unique())
+       versions[unique_file] = number_versions
+       if number_versions is not 1:
+           print("%s has %s versions." %(unique_file,len(subset.chksum.unique())))
+    return versions
+
+
+# First assess if all have equivalent files.
+differences = find_differences(df)
 
 
 # Now compare containers
-result_folder = '/home/vanessa/Documents/Dropbox/Code/singularity/singularity-python/examples/singularity_hub'
+result_folder = '/home/vanessa/Desktop/singularity-python/examples/singularity_hub'
+pickle.dump(results,open('%s/build_manifests.pkl' %(result_folder),'wb'))
 for container_name,image_set in images.items():
     comparisons = compare_container_sets(container_set1=images,
                                          container_set2=images)
     output_file = "%s/comparisondf_%s.tsv" %(result_folder,container_name)
     comparisons.to_csv(output_file,sep="\t")
+    comparisons = compare_container_sets(container_set1=image_set,container_set2=image_set2)
+    comparisons.to_csv("%s/compare_builds_%s.tsv" %(result_folder,container_name),sep="\t")
 
-
-images = glob("%s/*" %(storage))
-comparisons = compare_container_sets(container_set1=images,container_set2=images)
-
-import pickle
-result_folder = '/home/vanessa/Documents/Dropbox/Code/singularity/singularity-python/examples/singularity_hub'
-pickle.dump(results,open('%s/build_manifests.json' %(result_folder)))
-df.to_csv("%s/compare_builds.tsv" %(result_folder),sep="\t")
 
 # Write the table to file
 table = ''
 for row in df.iterrows():
-    table = '''%s
-               <tr>
-                  <td>%s</td>
-                  <td>%s</td>
-                  <td>%s</td>
-               </tr>
-            ''' %(table,row[1]['name'],
-                  row[1]['commit'],
-                  row[1]['build_time_seconds'],
-                  row[1]['hash'],
-                  row[1]['size'],
-                  row[1]['estimated_os'])
+    table = '%s<tr>' %(table)
+    for column in df.columns:
+        table = "%s\n<td>%s</td>" %(table,row[1][column])
+    table = '%s\n</tr>' %(table)
 
 
 template = open('%s/template.html','r').read()

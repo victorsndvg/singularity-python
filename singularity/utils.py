@@ -94,15 +94,17 @@ def run_command(cmd,error_message=None,sudopw=None,suppress=False):
     if sudopw != None:
         cmd = ' '.join(["echo", sudopw,"|","sudo","-S"] + cmd)
         if suppress == False:
-            with os.popen(cmd) as pfile:
-                output = pfile.read().strip('\n')
+            pipe = os.popen(cmd)
+            output = pipe.read().strip('\n')
+            pipe.close()
         else:
             output = cmd
             os.system(cmd)
     else:
         try:
-            process = subprocess.Popen(cmd,stdout=subprocess.PIPE)
-            output, err = process.communicate()
+            pipe = subprocess.Popen(cmd,stdout=subprocess.PIPE)
+            output, err = pipe.communicate()
+            pipe.close()
         except OSError as error: 
             if error.errno == os.errno.ENOENT:
                 bot.logger.error(error_message)

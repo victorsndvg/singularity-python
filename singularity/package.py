@@ -127,6 +127,7 @@ def package(image_path,spec_path=None,output_folder=None,runscript=True,
     tmptar = S.export(image_path=image_path)
     tar = tarfile.open(tmptar)
     members = tar.getmembers()
+
     image_name = os.path.basename(image_path)
     zip_name = "%s.zip" %(image_name.replace(" ","_"))
     # Include the image in the package?
@@ -151,6 +152,10 @@ def package(image_path,spec_path=None,output_folder=None,runscript=True,
             bot.logger.debug("Found runscript.")
         except KeyError:
             bot.logger.warning("No runscript found")
+
+    # Make sure to close file handle
+    tar.close()   
+ 
     if software == True:
         bot.logger.info("Adding software list to package.")
         files = [x.path for x in members if x.isfile()]
@@ -183,11 +188,11 @@ def content_metadata(image_path,S=None,sudopw=None):
             S = Singularity(debug=verbose) # This command will ask the user for sudo
     tmptar = S.export(image_path=image_path)
     tar = tarfile.open(tmptar)
-
     infos = []
     members = tar.getmembers()
     for member in members:
         infos.append(member.get_info())
+    tar.close()
     return infos
 
 
