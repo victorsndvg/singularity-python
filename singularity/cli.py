@@ -199,7 +199,7 @@ class Singularity:
         '''pull will pull a singularity hub image
         :param image_path: full path to image
         ''' 
-        if not image_path.startswit('shub://'):
+        if not image_path.startswith('shub://'):
             bot.logger.error("pull is only valid for the shub://uri, %s is invalid.",image_name)
             sys.exit(1)           
 

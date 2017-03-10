@@ -9,17 +9,24 @@ container_names = ['vsoch/singularity-hello-world',
                    'vsoch/pefinder']
 
 from singularity.hub.client import Client
-from singularity.cli import Singularity
+from singularity.package import get_image_hash
+
 import tempfile
 import os
+import demjson
+import pandas
+import shutil
 
 shub = Client()    # Singularity Hub Client
-S = Singularity()  # Singularity command line client
 results = dict()
 
 # Let's keep images in a temporary folder
 storage = tempfile.mkdtemp()
 os.chdir(storage)
+
+# We will keep a table of information
+columns = ['name','build_time_seconds','hash','size','commit','estimated_os']
+df = pandas.DataFrame(columns=columns)
 
 for container_name in container_names:
     
@@ -28,12 +35,16 @@ for container_name in container_names:
     container_ids = collection['container_set']
     containers = []
     for container_id in container_ids:
-       container = shub.get_container(container_id)
-       containers.append(container)
-       # Download the specific container
-       commit = container['version']
-       S.pull("shub://%s:%s" %(container_name,commit))
+       manifest = shub.get_container(container_id)
+       containers.append(manifest)
+       image = shub.pull_container(manifest,
+                                   download_folder=storage,
+                                   name="%s.img.gz" %(manifest['version']))       
+       # Get hash of file
+       hashes.append(get_image_hash(image))
+       df.loc['%s-%s' %(container_name,manifest['version'])]
 
     results[container_name] = {'collection':collection,
                                'containers':containers}
 
+shutil.rmtree(storage)
