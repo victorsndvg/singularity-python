@@ -111,6 +111,43 @@ def compare_containers(container1=None,container2=None,by=None,
     return comparisons
 
 
+def compare_container_sets(container_set1,container_set2,by=None):
+    '''
+    :param container_set1: a list of containers to compare (set 1)
+    :param container_set2: a list of containers to compare (set 2)
+    :by: metrics to compare by (files.txt and or folders.txt)
+    ''' 
+
+    if by == None:
+        by = ['files.txt']
+
+    if not isinstance(by,list):
+        by = [by]
+
+    comparisons = dict()
+
+    for b in by:
+        bot.logger.debug("Starting comparisons for %s",b)
+        df = pandas.DataFrame(index=container_set1,columns=container_set2)
+        for container1 in container_set1:
+            for container2 in container_set2:
+                if container1 != container2:
+                    sim = calculate_similarity(container1=container1,
+                                               container2=container2,
+                                               by=b)[b]
+                else:
+                    sim = 1.0
+
+                name1 = os.path.basename(container1).replace('.img','')
+                name2 = os.path.basename(container2).replace('.img','')
+                bot.logger.debug("%s vs. %s: %s" %(name1,name2,sim))
+                df.loc[container1,container2] = sim
+        df.index = [os.path.basename(x).replace('.img','') for x in df.index.tolist()]
+        df.columns = [os.path.basename(x).replace('.img','') for x in df.columns.tolist()]
+        comparisons[b] = df
+    return comparisons
+
+
 def compare_lists(list1,list2):
     '''compare lists is the lowest level that drives compare_containers and
     compare_packages. It returns a comparison object (dict) with the unique,

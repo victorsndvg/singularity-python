@@ -10,6 +10,7 @@ container_names = ['vsoch/singularity-hello-world',
 
 from singularity.hub.client import Client
 from singularity.package import get_image_hash
+from singularity.analysis.compare import compare_container_sets
 
 import tempfile
 import os
@@ -41,10 +42,47 @@ for container_name in container_names:
                                    download_folder=storage,
                                    name="%s.img.gz" %(manifest['version']))       
        # Get hash of file
-       hashes.append(get_image_hash(image))
-       df.loc['%s-%s' %(container_name,manifest['version'])]
+       image_hash = get_image_hash(image)
+       metrics = shub.load_metrics(manifest)
+       result = [container_name,
+                 metrics['build_time_seconds'],
+                 image_hash,
+                 metrics['size'],
+                 manifest['version'],
+                 metrics['estimated_os']]
+       df.loc['%s-%s' %(container_name,manifest['version'])] = result
 
     results[container_name] = {'collection':collection,
                                'containers':containers}
+
+images = glob("%s/*" %(storage))
+comparisons = compare_container_sets(container_set1=images,container_set2=images)
+
+import pickle
+result_folder = '/home/vanessa/Documents/Dropbox/Code/singularity/singularity-python/examples/singularity_hub'
+pickle.dump(results,open('%s/build_manifests.json' %(result_folder)))
+df.to_csv("%s/compare_builds.tsv" %(result_folder),sep="\t")
+
+# Write the table to file
+table = ''
+for row in df.iterrows():
+    table = '''%s
+               <tr>
+                  <td>%s</td>
+                  <td>%s</td>
+                  <td>%s</td>
+               </tr>
+            ''' %(table,row[1]['name'],
+                  row[1]['commit'],
+                  row[1]['build_time_seconds'],
+                  row[1]['hash'],
+                  row[1]['size'],
+                  row[1]['estimated_os'])
+
+
+template = open('%s/template.html','r').read()
+template.replace('[[TABLE]]',table)
+with open('%s/index.html' %(result_folder),'w') as filey:
+    filey.writelines(template)
 
 shutil.rmtree(storage)

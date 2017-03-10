@@ -120,7 +120,7 @@ def package(image_path,spec_path=None,output_folder=None,runscript=True,
     '''    
     # Run create image and bootstrap with Singularity command line tool.
     if S == None:
-        if sudopw != None:
+        if sudopw is not None:
             S = Singularity(sudopw=sudopw,debug=verbose)
         else:
             S = Singularity(debug=verbose) # This command will ask the user for sudo

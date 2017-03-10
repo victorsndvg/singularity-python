@@ -133,7 +133,8 @@ class Singularity:
 
 
 
-    def export(self,image_path,pipe=False,output_file=None,command=None,export_format="tar"):
+    def export(self,image_path,pipe=False,output_file=None,command=None,
+               export_format="tar"):
         '''export will export an image, sudo must be used.
         :param image_path: full path to image
         :param pipe: export to pipe and not file (default, False)
@@ -154,7 +155,7 @@ class Singularity:
         else:
             _,tmptar = tempfile.mkstemp(suffix=".%s" %export_format)
             os.remove(tmptar)
-            cmd = cmd + ["-f",tmptar,image_path]
+            cmd = cmd + [image_path,'>',tmptar]
             self.run_command(cmd,sudo=sudo)
 
             # Was there an error?            
