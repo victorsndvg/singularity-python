@@ -116,7 +116,7 @@ def parse_container_name(image):
 
     # If the user provided a number (unique id for an image), return it
     if is_number(image) == True:
-        logger.info("Numeric image ID %s found.", image)
+        bot.logger.info("Numeric image ID %s found.", image)
         return int(image)
 
     image = image.split('/')

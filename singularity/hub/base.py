@@ -36,6 +36,6 @@ def get_template(container_name,get_type=None):
         if image['repo_tag'] is not None and get_type is not "collection":
             url = "%s:%s" %(url,image['repo_tag'])
  
-        result = api_get(url)
+    result = api_get(url)
 
     return result

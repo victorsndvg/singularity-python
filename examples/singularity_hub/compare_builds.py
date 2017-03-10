@@ -9,16 +9,31 @@ container_names = ['vsoch/singularity-hello-world',
                    'vsoch/pefinder']
 
 from singularity.hub.client import Client
+from singularity.cli import Singularity
+import tempfile
+import os
 
-client = Client()
+shub = Client()    # Singularity Hub Client
+S = Singularity()  # Singularity command line client
 results = dict()
+
+# Let's keep images in a temporary folder
+storage = tempfile.mkdtemp()
+os.chdir(storage)
 
 for container_name in container_names:
     
     # Retrieve the container based on the name
-    collection = client.get_collection(container_name)
+    collection = shub.get_collection(container_name)
     container_ids = collection['container_set']
     containers = []
     for container_id in container_ids:
-       container = client.get_container(container_id)
+       container = shub.get_container(container_id)
        containers.append(container)
+       # Download the specific container
+       commit = container['version']
+       S.pull("shub://%s:%s" %(container_name,commit))
+
+    results[container_name] = {'collection':collection,
+                               'containers':containers}
+
