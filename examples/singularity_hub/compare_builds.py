@@ -9,25 +9,27 @@ container_names = ['vsoch/singularity-hello-world',
                    'vsoch/pefinder']
 
 from singularity.hub.client import Client
+from singularity.cli import Singularity
 from singularity.package import get_image_hash
 from singularity.analysis.compare import compare_container_sets
+from singularity.package import content_metadata
 
 import tempfile
 import os
-import demjson
 import pandas
 import shutil
 
 shub = Client()    # Singularity Hub Client
+S = Singularity()  # command line client
 results = dict()
+images = dict()
 
 # Let's keep images in a temporary folder
 storage = tempfile.mkdtemp()
 os.chdir(storage)
 
 # We will keep a table of information
-columns = ['name','build_time_seconds','hash','size','commit','estimated_os']
-df = pandas.DataFrame(columns=columns)
+df = pandas.DataFrame()
 
 for container_name in container_names:
     
@@ -35,25 +37,33 @@ for container_name in container_names:
     collection = shub.get_collection(container_name)
     container_ids = collection['container_set']
     containers = []
+    image_set = []
     for container_id in container_ids:
        manifest = shub.get_container(container_id)
        containers.append(manifest)
-       image = shub.pull_container(manifest,
-                                   download_folder=storage,
-                                   name="%s.img.gz" %(manifest['version']))       
-       # Get hash of file
-       image_hash = get_image_hash(image)
-       metrics = shub.load_metrics(manifest)
-       result = [container_name,
-                 metrics['build_time_seconds'],
-                 image_hash,
-                 metrics['size'],
-                 manifest['version'],
-                 metrics['estimated_os']]
-       df.loc['%s-%s' %(container_name,manifest['version'])] = result
+       image = "%s/%s.img" %(storage,manifest['version'])
+       if not os.path.exists(image):
+           image = shub.pull_container(manifest,
+                                       download_folder=storage,
+                                       name=os.path.basename(image))       
+       image_set.append(image)
+       infos = pandas.DataFrame(content_metadata(image_path=image,S=S))
+       infos['container_name'] = "%s-%s" %(container_name,manifest['version'])
+       df = df.append(infos)
 
+    images[container_name] = image_set
     results[container_name] = {'collection':collection,
                                'containers':containers}
+
+
+# Now compare containers
+result_folder = '/home/vanessa/Documents/Dropbox/Code/singularity/singularity-python/examples/singularity_hub'
+for container_name,image_set in images.items():
+    comparisons = compare_container_sets(container_set1=images,
+                                         container_set2=images)
+    output_file = "%s/comparisondf_%s.tsv" %(result_folder,container_name)
+    comparisons.to_csv(output_file,sep="\t")
+
 
 images = glob("%s/*" %(storage))
 comparisons = compare_container_sets(container_set1=images,container_set2=images)

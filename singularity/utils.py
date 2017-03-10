@@ -94,7 +94,8 @@ def run_command(cmd,error_message=None,sudopw=None,suppress=False):
     if sudopw != None:
         cmd = ' '.join(["echo", sudopw,"|","sudo","-S"] + cmd)
         if suppress == False:
-            output = os.popen(cmd).read().strip('\n')
+            with os.popen(cmd) as pfile:
+                output = pfile.read().strip('\n')
         else:
             output = cmd
             os.system(cmd)

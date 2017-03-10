@@ -124,7 +124,7 @@ def package(image_path,spec_path=None,output_folder=None,runscript=True,
             S = Singularity(sudopw=sudopw,debug=verbose)
         else:
             S = Singularity(debug=verbose) # This command will ask the user for sudo
-    tmptar = S.export(image_path=image_path,pipe=False)
+    tmptar = S.export(image_path=image_path)
     tar = tarfile.open(tmptar)
     members = tar.getmembers()
     image_name = os.path.basename(image_path)
@@ -162,6 +162,33 @@ def package(image_path,spec_path=None,output_folder=None,runscript=True,
     bot.logger.debug("Package created at %s" %(zipfile))
     # return package to user
     return zipfile
+
+
+def content_metadata(image_path,S=None,sudopw=None):
+    '''generate content metadata for all files in image
+    :param image_path: the path to the image
+    :param S: the Singularity object (optional) will be created if not required.
+    :param sudopw: required to export the image
+    :param verbose: be verbose when using singularity --export (default,False)
+ 
+    ::note: To convert the resulting data structure into a pandas DataFrame:
+         df = pandas.DataFrame(infos)
+
+    '''    
+    # Run create image and bootstrap with Singularity command line tool.
+    if S == None:
+        if sudopw is not None:
+            S = Singularity(sudopw=sudopw,debug=verbose)
+        else:
+            S = Singularity(debug=verbose) # This command will ask the user for sudo
+    tmptar = S.export(image_path=image_path)
+    tar = tarfile.open(tmptar)
+
+    infos = []
+    members = tar.getmembers()
+    for member in members:
+        infos.append(member.get_info())
+    return infos
 
 
 def list_package(package_path):

@@ -133,7 +133,7 @@ class Singularity:
 
 
 
-    def export(self,image_path,pipe=False,output_file=None,command=None,
+    def export(self,image_path,output_file=None,command=None,
                export_format="tar"):
         '''export will export an image, sudo must be used.
         :param image_path: full path to image
@@ -149,26 +149,22 @@ class Singularity:
             print("Currently only supported export format is tar.")
             return None
     
-        # If the user has specified export to pipe, we don't need a file
-        if pipe == True:
-            cmd.append(image_path)
+        _,tmptar = tempfile.mkstemp(suffix=".%s" %export_format)
+        os.remove(tmptar)
+        cmd = cmd + [image_path,'>',tmptar]
+        self.run_command(cmd,sudo=sudo)
+
+        # Was there an error?            
+        if not os.path.exists(tmptar):
+            print('Error generating image tar')
+            return None
+
+        # if user has specified output file, move it there, return path
+        if output_file != None:
+            shutil.copyfile(tmptar,output_file)
+            return output_file
         else:
-            _,tmptar = tempfile.mkstemp(suffix=".%s" %export_format)
-            os.remove(tmptar)
-            cmd = cmd + [image_path,'>',tmptar]
-            self.run_command(cmd,sudo=sudo)
-
-            # Was there an error?            
-            if not os.path.exists(tmptar):
-                print('Error generating image tar')
-                return None
-
-            # if user has specified output file, move it there, return path
-            if output_file != None:
-                shutil.copyfile(tmptar,output_file)
-                return output_file
-            else:
-                return tmptar
+            return tmptar
 
         # Otherwise, return output of pipe    
         return self.run_command(cmd,sudo=sudo)
